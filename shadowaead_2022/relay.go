@@ -9,7 +9,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/sagernet/sing-shadowsocks"
+	shadowsocks "github.com/sagernet/sing-shadowsocks"
 	"github.com/sagernet/sing-shadowsocks/shadowaead"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/auth"
@@ -20,7 +20,7 @@ import (
 	N "github.com/sagernet/sing/common/network"
 	"github.com/sagernet/sing/common/udpnat"
 
-	"lukechampine.com/blake3"
+	"github.com/zeebo/blake3"
 )
 
 var _ shadowsocks.Service = (*RelayService[int])(nil)
@@ -174,7 +174,7 @@ func (s *RelayService[U]) newConnection(ctx context.Context, conn net.Conn, meta
 	_identitySubkey := buf.StackNewSize(s.keySaltLength)
 	identitySubkey := common.Dup(_identitySubkey)
 	identitySubkey.Extend(identitySubkey.FreeLen())
-	blake3.DeriveKey(identitySubkey.Bytes(), "shadowsocks 2022 identity subkey", keyMaterial)
+	blake3.DeriveKey("shadowsocks 2022 identity subkey", keyMaterial, identitySubkey.Bytes())
 	b, err := s.blockConstructor(identitySubkey.Bytes())
 	identitySubkey.Release()
 	common.KeepAlive(_identitySubkey)

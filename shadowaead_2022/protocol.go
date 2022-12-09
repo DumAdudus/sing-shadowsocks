@@ -17,7 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sagernet/sing-shadowsocks"
+	shadowsocks "github.com/sagernet/sing-shadowsocks"
 	"github.com/sagernet/sing-shadowsocks/shadowaead"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/buf"
@@ -28,8 +28,8 @@ import (
 	"github.com/sagernet/sing/common/random"
 	"github.com/sagernet/sing/common/rw"
 
+	"github.com/zeebo/blake3"
 	"golang.org/x/crypto/chacha20poly1305"
-	"lukechampine.com/blake3"
 )
 
 const (
@@ -162,7 +162,7 @@ func SessionKey(psk []byte, salt []byte, keyLength int) []byte {
 	copy(sessionKey, psk)
 	copy(sessionKey[len(psk):], salt)
 	outKey := buf.Make(keyLength)
-	blake3.DeriveKey(outKey, "shadowsocks 2022 session subkey", sessionKey)
+	blake3.DeriveKey("shadowsocks 2022 session subkey", sessionKey, outKey)
 	return outKey
 }
 
@@ -234,7 +234,7 @@ func (m *Method) writeExtendedIdentityHeaders(request *buf.Buffer, salt []byte) 
 		_identitySubkey := buf.StackNewSize(m.keySaltLength)
 		identitySubkey := common.Dup(_identitySubkey)
 		identitySubkey.Extend(identitySubkey.FreeLen())
-		blake3.DeriveKey(identitySubkey.Bytes(), "shadowsocks 2022 identity subkey", keyMaterial)
+		blake3.DeriveKey("shadowsocks 2022 identity subkey", keyMaterial, identitySubkey.Bytes())
 
 		pskHash := m.pskHash[aes.BlockSize*i : aes.BlockSize*(i+1)]
 
@@ -863,6 +863,6 @@ func (c *clientPacketConn) Close() error {
 func Blake3KeyedHash(reader io.Reader) io.Reader {
 	key := make([]byte, 32)
 	common.Must1(io.ReadFull(reader, key))
-	h := blake3.New(1024, key)
-	return h.XOF()
+	h, _ := blake3.NewKeyed(key)
+	return h.Digest()
 }
